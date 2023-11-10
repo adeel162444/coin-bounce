@@ -1,0 +1,11 @@
+.active {
+  color: red;
+}
+.inActive {
+  color: grey;
+  text-decoration: none;
+}
+.inActive:hover {
+  color: red;
+  transition: 0.5s;
+}

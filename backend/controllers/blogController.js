@@ -5,35 +5,23 @@ const blogModel = require("../models/blogModel");
 const fs = require("fs");
 const jwt = require("jsonwebtoken");
 const commentModel = require("../models/commentModel");
+const { findOne, findByIdAndUpdate } = require("../models/userModel");
+const { unlink } = require("fs/promises");
 //create blog
-
 exports.createBlog = async (req, res) => {
   try {
-    const { title, description, photo } = req.body;
-    const author = decodedUser(req);
+    const { title, description } = req.body;
+    const author = req.user.id;
+    const image = req.file;
 
-    if (!title || !description || !photo) {
+    if (!title || !description || !image) {
       errorMessage(res, 400, "Please fill out all the details");
     } else {
-      // read image in buffer
-      const buffer = Buffer.from(
-        photo.replace(/^data:image\/(png|jpg|jpeg);base64,/, ""),
-        "base64"
-      );
-      //alloc a name
-      const imageName = `${Date.now()}-${author}.png`;
-      //save locally
-      try {
-        fs.writeFileSync(`storage/${imageName}`, buffer);
-      } catch (error) {
-        errorMessage(res, 400, `${error} `);
-      }
-
       const blog = new blogModel({
         title,
         description,
         author,
-        photoPath: `${process.env.SERVER_BASE_PATH}/storage/${imageName}`,
+        imagePath: `${process.env.SERVER_BASE_PATH}/uploads/${image.filename}`,
       });
       await blog.save();
       const blogDto = new BlogDTO(blog);
@@ -81,46 +69,48 @@ exports.getBlogById = async (req, res) => {
 //update a blog v. important
 exports.updateAblog = async (req, res) => {
   try {
-    const { blogId, title, description, photo } = req.body;
+    const { blogId, title, description } = req.body;
 
     // to delete previous photo we need previous photoPth stored in database,
     // fetching that data from database to get imageName and path.
     let blog;
+    let updatedBolog;
     try {
       blog = await blogModel.findOne({ _id: blogId });
     } catch (error) {
       errorMessage(res, 500, `${error}`);
     }
-    if (photo) {
-      let previousPhoto = blog.photoPath;
-      previousPhoto = previousPhoto.split("/").at(-1); //e.g 1222332-ds3dwe2123212.png
-      fs.unlinkSync(`storage/${previousPhoto}`);
-      const buffer = Buffer.from(
-        photo.replace(/^data:image\/(png|jpg|jpeg);base64,/, ""),
-        "base64"
-      );
-      const imageName = `${Date.now()}-${blog.author}.png`;
+    let imageName;
+
+    if (req.file) {
+      imageName = blog.imagePath;
+      imageName = imageName.split("/").at(-1);
       try {
-        fs.writeFileSync(`storage/${imageName}`, buffer);
+        // Use fs.unlinkSync for synchronous file deletion
+        fs.unlinkSync(`uploads/${imageName}`);
+        console.log(`Deleted file: uploads/${imageName}`);
       } catch (error) {
-        errorMessage(res, 500, `${error}`);
+        console.log("Error deleting file:", error);
+        // Handle the error
       }
 
-      blog = await blogModel.findByIdAndUpdate(blogId, {
+      updatedBolog = await blogModel.findByIdAndUpdate(blogId, {
         title,
         description,
-        photoPath: `${process.env.SERVER_BASE_PATH}/storage/${imageName}`,
+        imagePath: `${process.env.SERVER_BASE_PATH}/uploads/${req.file.filename}`,
       });
     } else {
-      blog = await blogModel.findByIdAndUpdate(blogId, {
+      updatedBolog = await blogModel.findByIdAndUpdate(blogId, {
         title,
         description,
       });
     }
+    console.log(updatedBolog);
+
     res.status(200).json({
       success: true,
       message: "bolg updated",
-      blog,
+      blog: updatedBolog,
     });
   } catch (error) {
     errorMessage(res, 500, `${error}`);

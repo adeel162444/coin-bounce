@@ -3,7 +3,7 @@ class BlogDTO {
     this._id = blog._id;
     this.title = blog.title;
     this.description = blog.description;
-    this.photoPath = blog.photoPath;
+    this.imagePath = blog.imagePath;
     this.author = blog.author;
   }
 }

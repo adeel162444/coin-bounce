@@ -13,7 +13,7 @@ const UserDTO = require("../dto/userdto");
 exports.validateUserInput = [
   check("name").notEmpty().withMessage("Name is required"),
   check("userName").notEmpty().withMessage("User Name is required"),
-  check("email").notEmpty().withMessage("Emial is required"),
+  check("email").notEmpty().withMessage("Email is required"),
   check("email").isEmail().withMessage("Invalid Email"),
   check("password")
     .isLength({ min: 6 })
@@ -21,25 +21,26 @@ exports.validateUserInput = [
   check("password")
     .matches(/[$&+,:;=?@#|'<>.^*()%!-]/)
     .withMessage("Password should contain atleast one special character"),
-  check("cPassword")
+  check("confirm_Password")
     .notEmpty()
     .withMessage("confirm password field is required "),
 ];
 exports.addUser = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({
+    res.status(400).json({
+      success: false,
       errors: errors.array(),
     });
   } else {
     try {
-      const { email, userName, password, cPassword } = req.body;
+      const { email, userName, password, confirm_Password } = req.body;
       const emailInUse = await userModel.findOne({ email });
       const userNameInUse = await userModel.findOne({ userName });
 
       if (emailInUse || userNameInUse) {
         errorMessage(res, 409, "user already exsists");
-      } else if (password != cPassword) {
+      } else if (password != confirm_Password) {
         errorMessage(res, 400, "Password and confirm Password should be same");
       } else {
         const user = new userModel(req.body);
@@ -47,14 +48,11 @@ exports.addUser = async (req, res) => {
 
         const dtoUser = new UserDTO(user);
         const accessToken = storeAcessToken(res, user);
-        const refreshToken = storeRefreshToken(res, user);
 
         res.status(201).json({
           success: true,
           message: "user registered successfully",
           user: dtoUser,
-          accessToken,
-          refreshToken,
         });
       }
     } catch (error) {
@@ -78,7 +76,7 @@ exports.userLogin = async (req, res) => {
       const { email, password } = req.body;
       const user = await userModel.findOne({ email });
       if (!user) {
-        errorMessage(res, 400, "Invalid email or password");
+        errorMessage(res, 401, "Invalid email or password");
       } else {
         const passMatched = await bcrypt.compare(password, user.password);
         if (!passMatched) {
@@ -86,7 +84,7 @@ exports.userLogin = async (req, res) => {
         } else {
           const dtoUser = new UserDTO(user);
           const accessToken = storeAcessToken(res, user);
-          const refreshToken = storeRefreshToken(res, user);
+
           res.status(200).json({
             success: true,
             message: "user logged in successfully",
@@ -124,33 +122,63 @@ exports.getSingleUser = async (req, res) => {
     errorMessage(res, 500, `${error}`);
   }
 };
+
 // refresh token
-exports.refreshToken = async (req, res) => {
+// exports.refreshToken = async (req, res) => {
+//   try {
+//     jwt.verify(refresh_token, process.env.REFRESH_KEY, (err, user) => {
+//       if (err) {
+//         errorMessage(res, 403, `${err}`);
+//       }
+//       if (user) {
+//         storeAcessToken(res, user);
+//         res.status(200).json({
+//           success: true,
+//           message: "token successfully refreshed",
+//         });
+//       }
+//     });
+//   } catch (error) {
+//     errorMessage(res, 500, `${error}`);
+//   }
+// };
+// user logout
+exports.logout = async (req, res) => {
   try {
-    jwt.verify(refresh_token, process.env.REFRESH_KEY, (err, user) => {
-      if (err) {
-        errorMessage(res, 403, `${err}`);
-      }
-      if (user) {
-        storeAcessToken(res, user);
-        res.status(200).json({
-          success: true,
-          message: "token successfully refreshed",
-        });
-      }
+    res.clearCookie("access_token");
+    res.json({
+      success: true,
+      message: "user logged out successfully",
     });
   } catch (error) {
     errorMessage(res, 500, `${error}`);
   }
 };
-// user logout
-exports.logout = async (req, res) => {
+// verify Token
+exports.verifyToken = (req, res, next) => {
+  const { access_token } = req.cookies;
+  if (!access_token) {
+    errorMessage(res, 401, "No token found Login Again");
+  } else {
+    jwt.verify(access_token, process.env.ACCESS_KEY, (err, decoded) => {
+      if (err) {
+        errorMessage(res, 403, "token got expired");
+      } else {
+        req.user = decoded;
+      }
+      next();
+    });
+  }
+};
+// logged In user details
+exports.loggedInUser = async (req, res) => {
   try {
-    res.clearCookie("refresh_token");
-    res.clearCookie("access_token");
-    res.json({
+    const userId = req.user.id;
+    const user = await userModel.findById(userId);
+    const userDto = new UserDTO(user);
+    res.status(200).json({
       success: true,
-      message: "user logged out successfully",
+      user: userDto,
     });
   } catch (error) {
     errorMessage(res, 500, `${error}`);

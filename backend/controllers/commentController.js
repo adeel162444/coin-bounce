@@ -6,7 +6,7 @@ const userModel = require("../models/userModel");
 exports.createComment = async (req, res) => {
   const { content, blogId } = req.body;
   try {
-    const author = decodedUser(req);
+    const author = req.user.id;
 
     const comment = new commentModel({
       content,

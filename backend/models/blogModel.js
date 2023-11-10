@@ -11,7 +11,7 @@ const blogSchema = new mongoose.Schema(
       type: mongoose.SchemaTypes.ObjectId,
       ref: "User",
     },
-    photoPath: {
+    imagePath: {
       type: String,
     },
   },

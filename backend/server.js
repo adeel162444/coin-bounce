@@ -8,10 +8,14 @@ const blogRouter = require("./routes/blogRoute");
 const commentRouter = require("./routes/commentRoute");
 const app = express();
 const port = process.env.PORT;
+const cors = require("cors");
+app.use(cors({ origin: process.env.CLIENT_BASE_PATH, credentials: true }));
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 //routes
+
+app.use("/uploads", express.static(__dirname + "/uploads"));
 app.use("/storage", express.static("storage"));
 app.use("/api/user", userRouter);
 app.use("/api/blog", blogRouter);
