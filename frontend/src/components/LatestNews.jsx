@@ -11,7 +11,7 @@ const LatestNews = () => {
     try {
       const apiKey = import.meta.env.VITE_NEWS_API_KEY;
       const response = await fetch(
-        `https://newsapi.org/v2/everything?q=bitcoin&apiKey=${apiKey}`
+        `https://saurav.tech/NewsAPI/top-headlines/category/health/in.json`
       );
       const data = await response.json();
 
@@ -45,7 +45,7 @@ const LatestNews = () => {
                     alt="Sunset in the mountains"
                   />
                   <div class=" py-4">
-                    <div class="font-bold text-xs  md:text-sm mb-2 px-2">
+                    <div class="font-bold text-xs    md:text-sm mb-2 px-2">
                       {curElem.title}
                     </div>
                   </div>
