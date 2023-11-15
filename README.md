@@ -1,5 +1,5 @@
-# coin-bounce
-Developed a full-stack web application that allows users to see the latest news, whose data is fetched from a third party API. Apart from it user can also submit a blog.
+# News and Blog 
+Developed a full-stack web application that allows users to see the latest news, whose data is fetched from a third party API. User can also see top cryptocurrencies on the cryptocurrency page. Apart from it user can also submit a blog.
 
 Download Code.
 
